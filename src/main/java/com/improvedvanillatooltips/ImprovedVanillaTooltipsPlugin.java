@@ -1,4 +1,4 @@
-package com.example;
+package com.improvedvanillatooltips;
 
 import com.google.inject.Provides;
 import javax.inject.Inject;
@@ -15,9 +15,9 @@ import net.runelite.client.plugins.PluginDescriptor;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Example"
+	name = "Improved Vanilla Tooltips"
 )
-public class ExamplePlugin extends Plugin
+public class ImprovedVanillaTooltipsPlugin extends Plugin
 {
 	private static final int PRAYER_MOUSEOVER_ID = 526;
 
@@ -25,7 +25,7 @@ public class ExamplePlugin extends Plugin
 	private Client client;
 
 	@Inject
-	private ExampleConfig config;
+	private ImprovedVanillaTooltipsConfig config;
 
 	@Subscribe
 	public void onScriptPostFired(ScriptPostFired script)
@@ -43,8 +43,8 @@ public class ExamplePlugin extends Plugin
 	}
 
 	@Provides
-	ExampleConfig provideConfig(ConfigManager configManager)
+	ImprovedVanillaTooltipsConfig provideConfig(ConfigManager configManager)
 	{
-		return configManager.getConfig(ExampleConfig.class);
+		return configManager.getConfig(ImprovedVanillaTooltipsConfig.class);
 	}
 }

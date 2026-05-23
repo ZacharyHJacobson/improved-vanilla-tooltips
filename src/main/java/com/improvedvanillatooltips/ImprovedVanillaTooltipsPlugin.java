@@ -48,9 +48,9 @@ public class ImprovedVanillaTooltipsPlugin extends Plugin
 	{
 		int scriptID = script.getScriptId();
 		//show tooltips immediately
-		if(SCRIPT_IDS.contains(scriptID)) showTooltip();
+		if(config.instant_tooltips() && SCRIPT_IDS.contains(scriptID)) showTooltip();
 		//replace text in prayer tooltips
-		if(scriptID == TOOLTIP_ID) replacePrayerTooltip();
+		if(config.textless_prayer_tooltips() && scriptID == TOOLTIP_ID) replacePrayerTooltip();
 	}
 
 	private void showTooltip()
@@ -64,7 +64,7 @@ public class ImprovedVanillaTooltipsPlugin extends Plugin
 	{
 		//get tooltip, tooltip components, the prayer being moused over, and tooltip bottom for later
 		Widget tooltip = client.getWidget(InterfaceID.Prayerbook.TOOLTIP);
-		assert tooltip != null;
+		if(tooltip == null) return;
 		Widget[] components = tooltip.getChildren();
 		if(components == null || components.length != 3) return;
 		Widget background = tooltip.getChild(0);
@@ -73,22 +73,29 @@ public class ImprovedVanillaTooltipsPlugin extends Plugin
 		if(background == null || border == null || text == null) return;
 		MenuEntry[] menu_entries = client.getMenu().getMenuEntries();
 		Widget prayer = menu_entries[menu_entries.length - 1].getWidget();
-		assert prayer != null;
+		if(prayer == null) return;
 		int tooltip_bottom = tooltip.getHeight() + tooltip.getOriginalY();
 
-		int custom_x = 100;
-		int custom_y = 50;
 		//modify the tooltip to be a solid color, textless, and relocated based on the prayer's position
 		background.setTextColor(0xFF0000);
 		text.setText("");
-		tooltip.setSize(custom_x, custom_y);
+		tooltip.setSize((int) config.prayer_dimensions().getWidth(), (int) config.prayer_dimensions().getHeight());
 		if(tooltip.getOriginalY() < prayer.getOriginalY())
 		{
-			tooltip.setOriginalY(tooltip_bottom - custom_y);
+			tooltip.setOriginalY(tooltip_bottom - (int) config.prayer_dimensions().getHeight());
 		}
-        tooltip.setOriginalX(prayer.getOriginalX() + (prayer.getWidth() / 2) - (custom_x / 2));
+		//align tooltip horizontally to be centered when possible but left or right justified when not
+		int prayer_x = prayer.getOriginalX();
+		prayer_x += (prayer.getWidth() / 2);
+		prayer_x -= ((int) config.prayer_dimensions().getWidth() / 2);
+		prayer_x = Math.max(prayer_x, 0);
+		int side_panel_width = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_CONTAINER).getOriginalWidth();
+		prayer_x = Math.min(prayer_x, side_panel_width - (int) config.prayer_dimensions().getWidth());
+        tooltip.setOriginalX(prayer_x);
 		tooltip.revalidate();
+		background.revalidate();
 		border.revalidate();
+		text.revalidate();
 	}
 
 	@Provides

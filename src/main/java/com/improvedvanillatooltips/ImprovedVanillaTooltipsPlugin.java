@@ -2,9 +2,12 @@ package com.improvedvanillatooltips;
 
 import com.google.inject.Provides;
 import javax.inject.Inject;
+import javax.swing.*;
+
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
-import net.runelite.api.MenuEntry;
+import net.runelite.api.*;
+import net.runelite.api.Menu;
+import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarClientID;
@@ -13,8 +16,14 @@ import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.components.colorpicker.ColorPickerManager;
+import net.runelite.client.ui.components.colorpicker.RuneliteColorPicker;
+import net.runelite.client.util.ColorUtil;
 
+import java.awt.*;
 import java.util.Set;
+
+import static com.improvedvanillatooltips.ImprovedVanillaTooltipsConfig.PRAYERS_GROUP;
 
 @Slf4j
 @PluginDescriptor(
@@ -34,23 +43,29 @@ public class ImprovedVanillaTooltipsPlugin extends Plugin
 			3927,	//sound zoom
 			3928	//area sounds zoom
 	);
-
 	private static final int TOOLTIP_ID = 526;
+	private static final String DEFAULT_COLOR = "#ffffa0";
 
 	@Inject
 	private Client client;
 
 	@Inject
+	private ConfigManager configManager;
+
+	@Inject
 	private ImprovedVanillaTooltipsConfig config;
+
+	@Inject
+	private ColorPickerManager colorPickerManager;
 
 	@Subscribe
 	public void onScriptPostFired(ScriptPostFired script)
 	{
 		int scriptID = script.getScriptId();
 		//show tooltips immediately
-		if(config.instant_tooltips() && SCRIPT_IDS.contains(scriptID)) showTooltip();
+		if(config.instantTooltips() && SCRIPT_IDS.contains(scriptID)) showTooltip();
 		//replace text in prayer tooltips
-		if(config.textless_prayer_tooltips() && scriptID == TOOLTIP_ID) replacePrayerTooltip();
+		if(config.textlessPrayerTooltips() && scriptID == TOOLTIP_ID) replacePrayerTooltip();
 	}
 
 	private void showTooltip()
@@ -70,32 +85,111 @@ public class ImprovedVanillaTooltipsPlugin extends Plugin
 		Widget background = tooltip.getChild(0);
 		Widget border = tooltip.getChild(1);
 		Widget text = tooltip.getChild(2);
-		if(background == null || border == null || text == null) return;
-		MenuEntry[] menu_entries = client.getMenu().getMenuEntries();
-		Widget prayer = menu_entries[menu_entries.length - 1].getWidget();
-		if(prayer == null) return;
+		Widget prayer = getPrayerWidget();
+		if(background == null || border == null || text == null || prayer == null) return;
 		int tooltip_bottom = tooltip.getHeight() + tooltip.getOriginalY();
 
 		//modify the tooltip to be a solid color, textless, and relocated based on the prayer's position
-		background.setTextColor(0xFF0000);
+		background.setTextColor(loadColor(parsePrayerName(prayer)).getRGB());
 		text.setText("");
-		tooltip.setSize((int) config.prayer_dimensions().getWidth(), (int) config.prayer_dimensions().getHeight());
+		tooltip.setSize(getCustomPrayerWidth(), getCustomPrayerHeight());
 		if(tooltip.getOriginalY() < prayer.getOriginalY())
 		{
-			tooltip.setOriginalY(tooltip_bottom - (int) config.prayer_dimensions().getHeight());
+			tooltip.setOriginalY(tooltip_bottom - getCustomPrayerHeight());
 		}
 		//align tooltip horizontally to be centered when possible but left or right justified when not
 		int prayer_x = prayer.getOriginalX();
 		prayer_x += (prayer.getWidth() / 2);
-		prayer_x -= ((int) config.prayer_dimensions().getWidth() / 2);
+		prayer_x -= (getCustomPrayerWidth() / 2);
 		prayer_x = Math.max(prayer_x, 0);
-		int side_panel_width = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_CONTAINER).getOriginalWidth();
-		prayer_x = Math.min(prayer_x, side_panel_width - (int) config.prayer_dimensions().getWidth());
+		Widget side_container = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_CONTAINER);
+		if(side_container == null) return;
+		prayer_x = Math.min(prayer_x, side_container.getOriginalWidth() - getCustomPrayerWidth());
         tooltip.setOriginalX(prayer_x);
 		tooltip.revalidate();
 		background.revalidate();
 		border.revalidate();
 		text.revalidate();
+	}
+
+	private Widget getPrayerWidget()
+	{
+		MenuEntry[] menu_entries = client.getMenu().getMenuEntries();
+		Widget prayer = menu_entries[menu_entries.length - 1].getWidget();
+		if(prayer.getParent().getId() == InterfaceID.Prayerbook.CONTAINER) return prayer;
+		return null;
+	}
+
+	private int getCustomPrayerWidth()
+	{
+		return (int) config.prayerDimensions().getWidth();
+	}
+
+	private int getCustomPrayerHeight()
+	{
+		return (int) config.prayerDimensions().getHeight();
+	}
+
+	@Subscribe
+	public void onMenuOpened(MenuOpened event)
+	{
+		//add tooltip color picking option when shift+right-clicking a prayer
+		if (!config.textlessPrayerTooltips() || !client.isKeyPressed(KeyCode.KC_SHIFT)) return;
+		Widget prayer = getPrayerWidget();
+		if (prayer == null) return;
+		String prayer_name = parsePrayerName(prayer);
+		Menu colorMenu =  client.getMenu().createMenuEntry(event.getMenuEntries().length - 1)
+			.setOption("Tooltip color")
+			.setTarget(prayer_name)
+			.setType(MenuAction.RUNELITE)
+			.createSubMenu();
+		//offer recolors used by current visible prayers
+		Widget[] available_prayers = prayer.getParent().getStaticChildren();
+		if(available_prayers == null || available_prayers.length < 1) return;
+		Set<String> configured_colors = new java.util.TreeSet<String>(Set.of());
+		for (Widget available_prayer : available_prayers)
+		{
+			if(!available_prayer.isHidden())
+			{
+				String color = configManager.getConfiguration(PRAYERS_GROUP, parsePrayerName(available_prayer));
+				if(color != null) configured_colors.add(color);
+			}
+		}
+		for (String color : configured_colors)
+		{
+			colorMenu.createMenuEntry(0)
+					.setOption(ColorUtil.prependColorTag("Color", Color.decode(color)))
+					.setType(MenuAction.RUNELITE)
+					.onClick(e->
+			{
+				configManager.setConfiguration(PRAYERS_GROUP, prayer_name, color);
+			});
+		}
+		colorMenu.createMenuEntry(0).setOption("Pick").setType(MenuAction.RUNELITE).onClick( e->
+		{
+			SwingUtilities.invokeLater(() ->
+			{
+				Color old_color = loadColor(prayer_name);
+				RuneliteColorPicker colorPicker = colorPickerManager.create(client, old_color, prayer_name + " Tooltip Color", true);
+				colorPicker.setOnClose(c ->
+				{
+					configManager.setConfiguration(PRAYERS_GROUP, prayer_name, c);
+				});
+				colorPicker.setVisible(true);
+			});
+		});
+	}
+
+	private String parsePrayerName(Widget prayer)
+	{
+		return prayer.getName().replace("<col=ff9040>", "").replace("</col>", "");
+	}
+
+	private Color loadColor(String prayer_name)
+	{
+		String color = configManager.getConfiguration(PRAYERS_GROUP, prayer_name);
+		if(color == null) color = DEFAULT_COLOR;
+		return Color.decode(color);
 	}
 
 	@Provides

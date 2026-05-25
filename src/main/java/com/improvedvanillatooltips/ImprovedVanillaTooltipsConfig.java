@@ -8,8 +8,8 @@ import net.runelite.client.config.ConfigItem;
 @ConfigGroup(ImprovedVanillaTooltipsConfig.GROUP)
 public interface ImprovedVanillaTooltipsConfig extends Config
 {
-	final String GROUP = "improvedvanillatooltips";
-	final String PRAYERS_GROUP = GROUP + ".prayers";
+	String GROUP = "improvedvanillatooltips";
+	String PRAYERS_GROUP = GROUP + ".prayers";
 	@ConfigItem(
 		position = 0,
 		keyName = "instantTooltips",
@@ -29,7 +29,7 @@ public interface ImprovedVanillaTooltipsConfig extends Config
 	)
 	default boolean textlessPrayerTooltips()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(

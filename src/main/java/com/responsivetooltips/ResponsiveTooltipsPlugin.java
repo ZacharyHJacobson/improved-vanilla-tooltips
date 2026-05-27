@@ -1,4 +1,4 @@
-package com.improvedvanillatooltips;
+package com.responsivetooltips;
 
 import com.google.inject.Provides;
 import javax.inject.Inject;
@@ -23,13 +23,13 @@ import net.runelite.client.util.ColorUtil;
 import java.awt.*;
 import java.util.Set;
 
-import static com.improvedvanillatooltips.ImprovedVanillaTooltipsConfig.PRAYERS_GROUP;
+import static com.responsivetooltips.ResponsiveTooltipsConfig.PRAYERS_GROUP;
 
 @Slf4j
 @PluginDescriptor(
-	name = "Improved Vanilla Tooltips"
+	name = "Responsive Tooltips"
 )
-public class ImprovedVanillaTooltipsPlugin extends Plugin
+public class ResponsiveTooltipsPlugin extends Plugin
 {
 	private static final Set<Integer> SCRIPT_IDS = Set.of(
 			526,	//attack style, attack bar, audio icons, zoom, controls, emotes, map, prayer, emotes, brightness, zoom
@@ -53,7 +53,7 @@ public class ImprovedVanillaTooltipsPlugin extends Plugin
 	private ConfigManager configManager;
 
 	@Inject
-	private ImprovedVanillaTooltipsConfig config;
+	private ResponsiveTooltipsConfig config;
 
 	@Inject
 	private ColorPickerManager colorPickerManager;
@@ -220,8 +220,8 @@ configManager.setConfiguration(PRAYERS_GROUP, prayer_name, new_color));
 	}
 
 	@Provides
-	ImprovedVanillaTooltipsConfig provideConfig(ConfigManager configManager)
+	ResponsiveTooltipsConfig provideConfig(ConfigManager configManager)
 	{
-		return configManager.getConfig(ImprovedVanillaTooltipsConfig.class);
+		return configManager.getConfig(ResponsiveTooltipsConfig.class);
 	}
 }

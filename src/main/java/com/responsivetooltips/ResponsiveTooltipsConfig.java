@@ -1,14 +1,14 @@
-package com.improvedvanillatooltips;
+package com.responsivetooltips;
 
 import java.awt.Dimension;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 
-@ConfigGroup(ImprovedVanillaTooltipsConfig.GROUP)
-public interface ImprovedVanillaTooltipsConfig extends Config
+@ConfigGroup(ResponsiveTooltipsConfig.GROUP)
+public interface ResponsiveTooltipsConfig extends Config
 {
-	String GROUP = "improvedvanillatooltips";
+	String GROUP = "responsivetooltips";
 	String PRAYERS_GROUP = GROUP + ".prayers";
 	@ConfigItem(
 		position = 0,

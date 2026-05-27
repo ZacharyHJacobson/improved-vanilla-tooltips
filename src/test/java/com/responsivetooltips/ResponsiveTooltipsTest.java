@@ -1,13 +1,13 @@
-package com.improvedvanillatooltips;
+package com.responsivetooltips;
 
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;
 
-public class ImprovedVanillaTooltipsTest
+public class ResponsiveTooltipsTest
 {
 	public static void main(String[] args) throws Exception
 	{
-		ExternalPluginManager.loadBuiltin(ImprovedVanillaTooltipsPlugin.class);
+		ExternalPluginManager.loadBuiltin(ResponsiveTooltipsPlugin.class);
 		RuneLite.main(args);
 	}
 }
